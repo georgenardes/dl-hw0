@@ -3,7 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
-#include <sys/time.h>
+//#include <sys/time.h>
 #include "uwnet.h"
 #include "matrix.h"
 #include "image.h"
@@ -36,11 +36,13 @@ int same_matrix(matrix a, matrix b)
 
 double what_time_is_it_now()
 {
-    struct timeval time;
+   /* struct timeval time;
     if (gettimeofday(&time,NULL)){
         return 0;
     }
     return (double)time.tv_sec + (double)time.tv_usec * .000001;
+    */
+    return 0;
 }
 
 void test_copy_matrix()

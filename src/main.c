@@ -30,12 +30,12 @@ void try_mnist()
 
 int main(int argc, char **argv)
 {
-    if(argc < 2){
-        printf("usage: %s [test | trymnist]\n", argv[0]);  
-    } else if (0 == strcmp(argv[1], "trymnist")){
-        try_mnist();
-    } else if (0 == strcmp(argv[1], "test")){
-        run_tests();
-    }
+    //if(argc < 2){
+    //    printf("usage: %s [test | trymnist]\n", argv[0]);  
+    //} else if (0 == strcmp(argv[1], "trymnist")){
+    try_mnist();
+    //} else if (0 == strcmp(argv[1], "test")){
+    //    run_tests();
+    //}
     return 0;
 }
