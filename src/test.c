@@ -186,12 +186,12 @@ void test_connected_layer()
 
     free_matrix(*l.delta);
     l.delta[0] = delta;
-    l.backward(l, prev_delta);
+    l.backward(l, prev_delta, 0.9);
     TEST(same_matrix(truth_prev_delta, prev_delta));
     TEST(same_matrix(truth_dw, l.dw));
     TEST(same_matrix(truth_db, l.db));
 
-    l.update(l, .01, .9, .01);
+    l.update(l, .01, .9, .01, 0);
     TEST(same_matrix(updated_dw, l.dw));
     TEST(same_matrix(updated_db, l.db));
     TEST(same_matrix(updated_w, l.w));

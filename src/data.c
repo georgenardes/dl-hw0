@@ -86,7 +86,6 @@ data load_image_classification_data(char *images, char *label_file)
     return d;
 }
 
-
 char *fgetl(FILE *fp)
 {
     if(feof(fp)) return 0;

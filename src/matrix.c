@@ -102,8 +102,7 @@ void axpy_matrix(float a, matrix x, matrix y)
 // returns: new matrix that is the result
 matrix matmul(matrix a, matrix b)
 {
-    matrix c = make_matrix(a.rows, b.cols);
-    // TODO: 1.4 - Implement matrix multiplication. Make sure it's fast!
+    matrix c = make_matrix(a.rows, b.cols);    
     for (int i = 0; i < a.rows; ++i) {
         for (int k = 0; k < b.rows; ++k) {
             for (int j = 0; j < b.cols; ++j) {
@@ -114,6 +113,43 @@ matrix matmul(matrix a, matrix b)
     }
     return c;
 }
+
+
+// Perform element-wise matrix division a/b, return result
+// matrix a,b: operands
+// returns: new matrix that is the result
+matrix matdiv(matrix a, matrix b) 
+{
+    if (a.cols != b.cols || a.rows != b.rows)
+        printf("ERRO on element-wise matrix mult!! \n");
+
+    matrix c = make_matrix(a.rows, a.cols);    
+    for (int i = 0; i < a.rows; ++i) {
+        for (int k = 0; k < a.cols; ++k) {                        
+            c.data[i * a.cols + k] = a.data[i * a.cols + k] / b.data[i * a.cols + k];
+        }
+    }
+    return c;
+}
+
+
+// Perform matrix multiplication a*b, return result
+// matrix a,b: operands
+// returns: new matrix that is the result
+matrix mathamm(matrix a, matrix b)
+{
+    if (a.cols != b.cols || a.rows != b.rows)
+        printf("ERRO on element-wise matrix mult!! \n");
+
+    matrix c = make_matrix(a.rows, a.cols);    
+    for (int i = 0; i < a.rows; ++i) {
+        for (int k = 0; k < a.cols; ++k) {
+            c.data[i * a.cols + k] = a.data[i * a.cols + k] * b.data[i * a.cols + k];
+        }
+    }
+    return c;
+}
+
 
 // In-place, element-wise scaling of matrix
 // float s: scaling factor
@@ -127,6 +163,19 @@ void scal_matrix(float s, matrix m)
         }
     }
 }
+
+
+// In-place square root of each matrix element with epsilon
+void sqrt_matrix(matrix m) 
+{
+    int i, j;
+    for (i = 0; i < m.rows; ++i) {
+        for (j = 0; j < m.cols; ++j) {
+            m.data[i * m.cols + j] = sqrtf(m.data[i * m.cols + j] + 1e-8);
+        }
+    }
+}
+
 
 // Print a matrix
 void print_matrix(matrix m)

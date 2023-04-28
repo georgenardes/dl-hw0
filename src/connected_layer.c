@@ -18,14 +18,14 @@ void forward_bias(matrix m, matrix b)
     }
 }
 
-// Calculate bias updates from a delta matrix
+// Calculate bias updates from a delta matrix (like a reduced_sum)
 // matrix delta: error made by the layer
 // matrix db: delta for the biases
 void backward_bias(matrix delta, matrix db)
 {
     int i, j;
     for(i = 0; i < delta.rows; ++i){
-        for(j = 0; j < delta.cols; ++j){
+        for(j = 0; j < delta.cols; ++j){            
             db.data[j] += -delta.data[i*delta.cols + j];
         }
     }
@@ -56,29 +56,47 @@ matrix forward_connected_layer(layer l, matrix in)
 
 // Run a connected layer backward
 // layer l: layer to run
-// matrix delta: 
-void backward_connected_layer(layer l, matrix prev_delta)
-{
-    matrix in    = l.in[0];
-    matrix out   = l.out[0];
-    matrix delta = l.delta[0];
+// matrix prev_delta: privious layer delta  (TRANSFERIR TODA PARTE DE ADAM PARA A FUNÇÃO DE PARAMETER UPDATE)
+void backward_connected_layer(layer l, matrix prev_delta, float momentum)
+{    
+    float b1 = momentum;
+    float b2 = 0.999;
 
-    // TODO: 3.2
+    matrix in    = l.in[0];
+    matrix out   = l.out[0]; // output is = activation(Z)
+    matrix delta = l.delta[0];    
+
+
+
     // delta is the error made by this layer, dL/dout
     // First modify in place to be dL/d(in*w+b) using the gradient of activation
     gradient_matrix(out, l.activation, delta);
-
+    
     // Calculate the updates for the bias terms using backward_bias
     // The current bias deltas are stored in l.db
-    backward_bias(delta, l.db);
+    backward_bias(delta, l.db); // dldb
+    matrix dldb2 = mathamm(l.db, l.db); // square dldb
 
+    // sets vdb 
+    axpy_matrix(-(1.0 - b1), l.db, l.vdb);
+
+    // sets sdb
+    axpy_matrix(-(1.0 - b2), dldb2, l.sdb);
+
+    // ------------------
+     
     // Then calculate dL/dw. Use axpy to subtract this dL/dw into any previously stored
-    // updates for our weights, which are stored in l.dw
-    // l.dw = l.dw - dL/dw
+    // updates for our weights, which are stored in l.dw    
     matrix intransp = transpose_matrix(in);
-    matrix dldw = matmul(intransp, delta);
-    axpy_matrix(-1.0, dldw, l.dw);
-    free_matrix(intransp);
+    matrix dldw = matmul(intransp, delta);        
+    matrix dldw2 = mathamm(dldw, dldw); // square dldw
+
+    // sets vdw 
+    axpy_matrix(-(1.0 - b1), dldw, l.vdw);     
+    
+    // sets sdw
+    axpy_matrix(-(1.0 - b2), dldw2, l.sdw);
+
 
     if (prev_delta.data) {
         // Finally, if there is a previous layer to calculate for,
@@ -87,36 +105,59 @@ void backward_connected_layer(layer l, matrix prev_delta)
         matrix wtransp = transpose_matrix(l.w);
         matrix w = matmul(delta, wtransp);
         axpy_matrix(1.0, w, prev_delta);
+
         free_matrix(wtransp);
         free_matrix(w);
-
     }
+
+    free_matrix(intransp);
+    free_matrix(dldw);
+    free_matrix(dldw2);
+
 }
 
 // Update 
-void update_connected_layer(layer l, float rate, float momentum, float decay)
+void update_connected_layer(layer l, float rate, float momentum, float decay, float iteration)
 {
-    // TODO: 3.3
-    // Currently l.dw and l.db store:
-    // l.dw = momentum * l.dw_prev - dL/dw
-    // l.db = momentum * l.db_prev - dL/db
+    float b1 = momentum;
+    float b2 = 0.999;
 
-    // For our weights we want to include weight decay:
-    // l.dw = l.dw - decay * l.w
-    axpy_matrix(-decay, l.w, l.dw);
+    matrix vdw_correct = copy_matrix(l.vdw);
+    matrix sdw_correct = copy_matrix(l.sdw);
+    scal_matrix((1.0 / (1.0 - pow(b1, iteration))), vdw_correct);
+    scal_matrix((1.0 / (1.0 - pow(b2, iteration))), sdw_correct);
+    sqrt_matrix(sdw_correct);
 
 
+    matrix vdb_correct = copy_matrix(l.vdw);
+    matrix sdb_correct = copy_matrix(l.sdw);
+    scal_matrix((1.0 / (1.0 - pow(b1, iteration))), vdb_correct);
+    scal_matrix((1.0 / (1.0 - pow(b2, iteration))), sdb_correct);
+    sqrt_matrix(sdb_correct);
+
+    matrix dw = matdiv(vdw_correct, sdw_correct);
+    matrix db = matdiv(vdw_correct, sdw_correct);
+
+    // For our weights we want to include weight decay: axpy_matrix(-decay, l.w, l.dw);
+  
     // Then for both weights and biases we want to apply the updates:
-    // l.w = l.w + rate*l.dw
-    // l.b = l.b + rade*l.db
-    axpy_matrix(rate, l.dw, l.w);
-    axpy_matrix(rate, l.db, l.b);
+    axpy_matrix(rate, dw, l.w);
+    axpy_matrix(rate, db, l.b);
 
     // Finally, we want to scale dw and db by our momentum to prepare them for the next round
-    // l.dw *= momentum
-    // l.db *= momentum
-    scal_matrix(momentum, l.dw);
-    scal_matrix(momentum, l.db);
+    scal_matrix(b1, l.vdw);
+    scal_matrix(b2, l.sdw);
+    scal_matrix(b1, l.vdb);
+    scal_matrix(b2, l.sdb);    
+
+    // free memory
+    free_matrix(vdw_correct);
+    free_matrix(sdw_correct);
+    free_matrix(dw);
+    free_matrix(vdb_correct);
+    free_matrix(sdb_correct);
+    free_matrix(db);
+
 }
 
 layer make_connected_layer(int inputs, int outputs, ACTIVATION activation)
@@ -124,8 +165,12 @@ layer make_connected_layer(int inputs, int outputs, ACTIVATION activation)
     layer l = {0};
     l.w  = random_matrix(inputs, outputs, sqrtf(2.f/inputs));
     l.dw = make_matrix(inputs, outputs);
+    l.vdw = make_matrix(inputs, outputs);
+    l.sdw = make_matrix(inputs, outputs);
     l.b  = make_matrix(1, outputs);
     l.db = make_matrix(1, outputs);
+    l.vdb = make_matrix(1, outputs);
+    l.sdb = make_matrix(1, outputs);
     l.in = calloc(1, sizeof(matrix));
     l.out = calloc(1, sizeof(matrix));
     l.delta = calloc(1, sizeof(matrix));

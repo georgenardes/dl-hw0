@@ -22,17 +22,22 @@ typedef struct layer {
 
     // Weights
     matrix w;
-    matrix dw;
+    matrix dw; // deprecated: changed by the momentum + rmsprop
+    matrix vdw; // created to the adam optimizer (momentum)
+    matrix sdw; // created to the adam optimizer (rmsprop)
 
     // Biases
     matrix b;
-    matrix db;
+    matrix db; // deprecated: changed by the momentum + rmsprop
+    matrix vdb; // created to the adam optimizer (momentum)
+    matrix sdb; // created to the adam optimizer (rmsprop)
+
 
     ACTIVATION activation;
     LAYER_TYPE type;
     matrix  (*forward)  (struct layer, struct matrix);
-    void   (*backward) (struct layer, struct matrix);
-    void   (*update)   (struct layer, float rate, float momentum, float decay);
+    void   (*backward) (struct layer, struct matrix, float momentum);
+    void   (*update)   (struct layer, float rate, float momentum, float decay, float iteration);
 } layer;
 
 layer make_connected_layer(int inputs, int outputs, ACTIVATION activation);
@@ -43,8 +48,8 @@ typedef struct {
 } net;
 
 matrix forward_net(net m, matrix X);
-void backward_net(net m);
-void update_net(net m, float rate, float momentum, float decay);
+void backward_net(net m, float momentum);
+void update_net(net m, float rate, float momentum, float decay, float iteration);
 void free_layer(layer l);
 void free_net(net n);
 
@@ -56,6 +61,7 @@ data random_batch(data d, int n);
 data load_image_classification_data(char *images, char *label_file);
 void free_data(data d);
 void train_image_classifier(net m, data d, int batch, int iters, float rate, float momentum, float decay);
+void train_val_image_classifier(net m, data train, data val, int batch, int iters, float rate, float momentum, float decay);
 float accuracy_net(net m, data d);
 
 char *fgetl(FILE *fp);

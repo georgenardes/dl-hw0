@@ -44,6 +44,11 @@ matrix copy_matrix(matrix m);
 // returns: new matrix that is the result
 matrix matmul(matrix a, matrix b);
 
+// Perform element-wise  matrix division a/b, return result
+// matrix a,b: operands
+// returns: new matrix that is the result
+matrix matdiv(matrix a, matrix b);
+
 // Perform the hammard product of two matrices (element-wise multiplication)
 // matrix a, b: operands
 // returns: result of hammard product
@@ -59,6 +64,14 @@ void axpy_matrix(float a, matrix x, matrix y);
 // float s: scaling factor
 // matrix m: matrix to be scaled
 void scal_matrix(float s, matrix m);
+
+
+// In-place square root of each matrix element with epsilon
+void sqrt_matrix(matrix m);
+
+
+
+
 
 // Print a matrix
 void print_matrix(matrix m);

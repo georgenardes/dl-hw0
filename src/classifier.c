@@ -30,6 +30,11 @@ float accuracy_net(net m, data d)
     return (float)correct / d.y.rows;
 }
 
+/*
+https://deepnotes.io/softmax-crossentropy
+https://www.deeplearningbook.com.br/cross-entropy-cost-function/
+
+*/
 float cross_entropy_loss(matrix y, layer l)
 {
     matrix preds = l.out[0];
@@ -45,16 +50,51 @@ float cross_entropy_loss(matrix y, layer l)
     return sum/y.rows;
 }
 
+/*
 void train_image_classifier(net m, data d, int batch, int iters, float rate, float momentum, float decay)
 {
     int e;
     for(e = 0; e < iters; ++e){
         data b = random_batch(d, batch);
         forward_net(m, b.X);
+
+        // when calculate the error, we set the delta of the output layer
         float err = cross_entropy_loss(b.y, m.layers[m.n-1]);
-        fprintf(stderr, "%06d: Loss: %f\n", e, err);
+
+        if (e % 100 == 0)
+            fprintf(stderr, "%06d: Loss: %f\n", e, err);
+        
+        // the delta of the output layer is already calculated
         backward_net(m);
         update_net(m, rate/batch, momentum, decay);
         free_data(b);
+    }
+}
+*/
+
+
+void train_val_image_classifier(net m, data train, data val, int batch, int epochs, float rate, float momentum, float decay)
+{
+    int e, it;
+    int it_per_epoch = train.X.rows / batch;
+
+    for (e = 0; e < epochs; ++e) {
+        printf("epoch %d/%d ", e, epochs);
+
+        for (it = 0; it < it_per_epoch; it++) {
+            data b = random_batch(train, batch);
+            forward_net(m, b.X);
+            float err = cross_entropy_loss(b.y, m.layers[m.n - 1]);
+            
+            fprintf(stderr, "\repoch %03d/%03d: it %05d/%05d ... loss: %06f ", e, epochs, it, it_per_epoch, err);
+
+            backward_net(m, momentum);
+            update_net(m, rate, momentum, decay, (e*it_per_epoch+it));
+            free_data(b);
+        }
+
+        printf("val_accuracy: %06f ", accuracy_net(m, val));
+
+        printf("\n");        
     }
 }

@@ -67,6 +67,9 @@ void gradient_matrix(matrix m, ACTIVATION a, matrix d)
                     gradient = 0.1;
                 }
             }
+            else if (a == SOFTMAX) { // !!! the loss function must be cross-entropy
+                gradient = 1.0;
+            }
 
             d.data[i * d.cols + j] *= gradient;
         }
