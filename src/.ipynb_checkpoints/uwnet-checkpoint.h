@@ -15,9 +15,6 @@ typedef enum{CONNECTED} LAYER_TYPE;
 // The kinds of activations our framework supports
 typedef enum{LINEAR, LOGISTIC, RELU, LRELU, SOFTMAX} ACTIVATION;
 
-// The kinds of optimizers our framework supports 
-typedef enum {SGD, SGDM, ADAM} OPTIMIZER;
-
 typedef struct layer {
     matrix *in;
     matrix *out;
@@ -25,28 +22,20 @@ typedef struct layer {
 
     // Weights
     matrix w;
-    matrix dw; // deprecated: changed by the momentum + rmsprop
-    matrix vdw; // created to the adam optimizer (momentum)
-    matrix sdw; // created to the adam optimizer (rmsprop)
+    matrix dw;
 
     // Biases
     matrix b;
-    matrix db; // deprecated: changed by the momentum + rmsprop
-    matrix vdb; // created to the adam optimizer (momentum)
-    matrix sdb; // created to the adam optimizer (rmsprop)
-
+    matrix db;
 
     ACTIVATION activation;
-    OPTIMIZER optimizer;
-    float beta1; // momentum
-
     LAYER_TYPE type;
     matrix  (*forward)  (struct layer, struct matrix);
-    void   (*backward) (struct layer, struct matrix);    
-    void   (*update)   (struct layer, float rate, float momentum, float decay);    
+    void   (*backward) (struct layer, struct matrix);
+    void   (*update)   (struct layer, float rate, float momentum, float decay);
 } layer;
 
-layer make_connected_layer(int inputs, int outputs, ACTIVATION activation, OPTIMIZER optimizer);
+layer make_connected_layer(int inputs, int outputs, ACTIVATION activation);
 
 typedef struct {
     layer *layers;
@@ -67,7 +56,6 @@ data random_batch(data d, int n);
 data load_image_classification_data(char *images, char *label_file);
 void free_data(data d);
 void train_image_classifier(net m, data d, int batch, int iters, float rate, float momentum, float decay);
-void train_val_image_classifier(net m, data train, data val, int batch, int iters, float rate, float momentum, float decay);
 float accuracy_net(net m, data d);
 
 char *fgetl(FILE *fp);

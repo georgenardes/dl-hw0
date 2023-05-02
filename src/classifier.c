@@ -88,8 +88,8 @@ void train_val_image_classifier(net m, data train, data val, int batch, int epoc
             
             fprintf(stderr, "\repoch %03d/%03d: it %05d/%05d ... loss: %06f ", e, epochs, it, it_per_epoch, err);
 
-            backward_net(m, momentum);
-            update_net(m, rate, momentum, decay, (e*it_per_epoch+it));
+            backward_net(m);
+            update_net(m, rate, momentum, decay);
             free_data(b);
         }
 

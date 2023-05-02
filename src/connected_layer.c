@@ -57,11 +57,8 @@ matrix forward_connected_layer(layer l, matrix in)
 // Run a connected layer backward
 // layer l: layer to run
 // matrix prev_delta: privious layer delta  (TRANSFERIR TODA PARTE DE ADAM PARA A FUNÇÃO DE PARAMETER UPDATE)
-void backward_connected_layer(layer l, matrix prev_delta, float momentum)
+void backward_connected_layer(layer l, matrix prev_delta)
 {    
-    float b1 = momentum;
-    float b2 = 0.999;
-
     matrix in    = l.in[0];
     matrix out   = l.out[0]; // output is = activation(Z)
     matrix delta = l.delta[0];    
@@ -75,28 +72,15 @@ void backward_connected_layer(layer l, matrix prev_delta, float momentum)
     // Calculate the updates for the bias terms using backward_bias
     // The current bias deltas are stored in l.db
     backward_bias(delta, l.db); // dldb
-    matrix dldb2 = mathamm(l.db, l.db); // square dldb
-
-    // sets vdb 
-    axpy_matrix(-(1.0 - b1), l.db, l.vdb);
-
-    // sets sdb
-    axpy_matrix(-(1.0 - b2), dldb2, l.sdb);
-
-    // ------------------
      
     // Then calculate dL/dw. Use axpy to subtract this dL/dw into any previously stored
     // updates for our weights, which are stored in l.dw    
     matrix intransp = transpose_matrix(in);
     matrix dldw = matmul(intransp, delta);        
-    matrix dldw2 = mathamm(dldw, dldw); // square dldw
-
-    // sets vdw 
-    axpy_matrix(-(1.0 - b1), dldw, l.vdw);     
     
-    // sets sdw
-    axpy_matrix(-(1.0 - b2), dldw2, l.sdw);
-
+    // sets dw  with dw += (1.0-beta1) * dldw
+    axpy_matrix(-(1.0 - l.beta1), dldw, l.dw);     
+        
 
     if (prev_delta.data) {
         // Finally, if there is a previous layer to calculate for,
@@ -109,19 +93,16 @@ void backward_connected_layer(layer l, matrix prev_delta, float momentum)
         free_matrix(wtransp);
         free_matrix(w);
     }
-
     free_matrix(intransp);
-    free_matrix(dldw);
-    free_matrix(dldw2);
+    free_matrix(dldw);    
 
 }
 
-// Update 
-void update_connected_layer(layer l, float rate, float momentum, float decay, float iteration)
+// Adam Optimizer
+// there is a bug because of sqrt of negative values
+void update_connected_layer_with_adam(layer l, float rate, float decay, float iteration, float b1, float b2)
 {
-    float b1 = momentum;
-    float b2 = 0.999;
-
+    
     matrix vdw_correct = copy_matrix(l.vdw);
     matrix sdw_correct = copy_matrix(l.sdw);
     scal_matrix((1.0 / (1.0 - pow(b1, iteration+1))), vdw_correct);
@@ -160,7 +141,27 @@ void update_connected_layer(layer l, float rate, float momentum, float decay, fl
 
 }
 
-layer make_connected_layer(int inputs, int outputs, ACTIVATION activation)
+// Adam Optimizer
+// there is a bug because of sqrt of negative values
+void update_connected_layer_with_momentum(layer l, float rate, float momentum, float decay)
+{
+    // For our weights we want to include weight decay:
+    // l.dw = l.dw - decay * l.w
+    // axpy_matrix(-decay, l.w, l.dw);
+
+    // Then for both weights and biases we want to apply the updates:
+    axpy_matrix(rate, l.dw, l.w);
+    axpy_matrix(rate, l.db, l.b);
+
+    // Finally, we want to scale dw and db by our momentum to prepare them for the next round
+    scal_matrix(momentum, l.dw);
+    scal_matrix(momentum, l.db);
+
+}
+
+
+
+layer make_connected_layer(int inputs, int outputs, ACTIVATION activation, OPTIMIZER optimizer)
 {
     layer l = {0};
     l.w  = random_matrix(inputs, outputs, sqrtf(2.f/inputs));
@@ -177,7 +178,21 @@ layer make_connected_layer(int inputs, int outputs, ACTIVATION activation)
     l.activation = activation;
     l.forward  = forward_connected_layer;
     l.backward = backward_connected_layer;
-    l.update   = update_connected_layer;
+
+
+    if (optimizer == SGDM) {
+        l.update = update_connected_layer_with_momentum;
+        l.beta1 = 0.9; // momentum
+    }
+    else if (optimizer == ADAM) {
+        l.update = update_connected_layer_with_adam;
+        l.beta1 = 0.9; // momentum
+    }
+    else {
+        printf("optimizer not implemented or not recognized!");
+        exit(-1);
+    }
+    
     return l;
 }
 

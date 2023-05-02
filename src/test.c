@@ -172,7 +172,7 @@ void test_connected_layer()
 
     matrix b = load_matrix("data/test/bias.matrix");
     matrix truth_out = load_matrix("data/test/out.matrix");
-    layer l = make_connected_layer(64, 16, LRELU);
+    layer l = make_connected_layer(64, 16, LRELU, SGDM);
     free_matrix(l.w);
     free_matrix(l.b);
     free_matrix(l.dw);

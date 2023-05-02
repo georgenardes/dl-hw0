@@ -61,9 +61,9 @@ void try_mnist()
     net n = {0};
     n.n = 3; // number of layers
     n.layers = calloc(n.n, sizeof(layer));
-    n.layers[0] = make_connected_layer(784, 256, RELU); // first layer
-    n.layers[1] = make_connected_layer(256, 256, RELU); // second layer
-    n.layers[2] = make_connected_layer(256, 10, SOFTMAX); // third layer
+    n.layers[0] = make_connected_layer(784, 256, RELU, SGDM); // first layer
+    n.layers[1] = make_connected_layer(256, 256, RELU, SGDM); // second layer
+    n.layers[2] = make_connected_layer(256, 10, SOFTMAX, SGDM); // third layer
     // n.layers[1] = make_connected_layer(32, 10, SOFTMAX); // third layer
 
     int batch = 128;

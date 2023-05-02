@@ -12,7 +12,7 @@ matrix forward_net(net m, matrix X)
     return X;
 }
 
-void backward_net(net m, float momentum)
+void backward_net(net m)
 {
     int i;
     for (i = m.n-1; i >= 0; --i) {
@@ -24,16 +24,16 @@ void backward_net(net m, float momentum)
             prev_delta = m.layers[i - 1].delta[0];
         }
         
-        l.backward(l, prev_delta, momentum);
+        l.backward(l, prev_delta);
     }
 }
 
-void update_net(net m, float rate, float momentum, float decay, float iteration)
+void update_net(net m, float rate, float momentum, float decay)
 {
     int i;
     for(i = 0; i < m.n; ++i){
         layer l = m.layers[i];
-        l.update(l, rate, momentum, decay, iteration);
+        l.update(l, rate, momentum, decay);
     }
 }
 
