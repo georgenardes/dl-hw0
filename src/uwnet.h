@@ -46,6 +46,8 @@ typedef struct layer {
     void   (*update)   (struct layer, float rate, float momentum, float decay);    
 } layer;
 
+
+matrix quantize_matrix_to_sx4(matrix m, float num_bits, float min_exp, float max_exp);
 layer make_connected_layer(int inputs, int outputs, ACTIVATION activation);
 
 typedef struct {
@@ -76,6 +78,8 @@ void forward_bias(matrix m, matrix b);
 void backward_bias(matrix delta, matrix db);
 void activate_matrix(matrix m, ACTIVATION a);
 void gradient_matrix(matrix m, ACTIVATION a, matrix d);
+
+
 
 #ifdef __cplusplus
 }

@@ -37,7 +37,7 @@ void backward_bias(matrix delta, matrix db)
 // returns: the result of running the layer: f(wx + b)
 matrix forward_connected_layer(layer l, matrix in)
 {
-    // TODO: 3.1 - run the network forward
+    // run the network forward
     matrix out = matmul(in, l.w);  // xw
     forward_bias(out, l.b);  // + b
     
@@ -78,8 +78,10 @@ void backward_connected_layer(layer l, matrix prev_delta)
     matrix intransp = transpose_matrix(in);
     matrix dldw = matmul(intransp, delta);        
     
-    // sets dw  with dw += (1.0-beta1) * dldw
-    axpy_matrix(-(1.0 - l.beta1), dldw, l.dw);     
+    // sets dw  with dw += (1.0-beta1) * dldw 
+    // however, some implementations ommit the subtraction by the beta1
+    // the -1.0 is used to flip de dw in order to add instead of subtrac
+    axpy_matrix(-1.0, dldw, l.dw);     
         
 
     if (prev_delta.data) {
@@ -178,7 +180,34 @@ layer make_connected_layer(int inputs, int outputs, ACTIVATION activation)
     l.forward  = forward_connected_layer;
     l.backward = backward_connected_layer;
     l.update = update_connected_layer_with_momentum;
+    // l.beta1 = momentum;
 
     return l;
 }
 
+
+
+
+matrix quantize_matrix_to_sx4(matrix m, float num_bits, float min_exp, float max_exp) 
+{
+    
+    matrix qm = make_matrix(m.rows, m.cols);
+
+    for (int i = 0; i < m.rows; i++) {
+        for (int j = 0; j < m.cols; j++) {
+            float x, qx;
+            x = qx = m.data[i * m.cols + j];
+
+            // quantization
+            qx = (int)(abs(log2(abs(qx) + 1e-7)) + 0.5);
+            qx = min(max_exp, max(min_exp, qx));
+            qx = powf(2.0, -qx);
+            qx = x < 0.0 ? -qx : qx;
+            
+            // set the quantized value on the new matrix
+            qm.data[i * m.cols + j] = qx;
+        }
+    }
+
+    return qm;
+}
