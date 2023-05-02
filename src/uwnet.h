@@ -46,7 +46,7 @@ typedef struct layer {
     void   (*update)   (struct layer, float rate, float momentum, float decay);    
 } layer;
 
-layer make_connected_layer(int inputs, int outputs, ACTIVATION activation, OPTIMIZER optimizer);
+layer make_connected_layer(int inputs, int outputs, ACTIVATION activation);
 
 typedef struct {
     layer *layers;

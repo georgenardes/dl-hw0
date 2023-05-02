@@ -145,8 +145,7 @@ void update_connected_layer_with_adam(layer l, float rate, float decay, float it
 // there is a bug because of sqrt of negative values
 void update_connected_layer_with_momentum(layer l, float rate, float momentum, float decay)
 {
-    // For our weights we want to include weight decay:
-    // l.dw = l.dw - decay * l.w
+    // For our weights we want to include weight decay:    
     // axpy_matrix(-decay, l.w, l.dw);
 
     // Then for both weights and biases we want to apply the updates:
@@ -160,8 +159,8 @@ void update_connected_layer_with_momentum(layer l, float rate, float momentum, f
 }
 
 
-
-layer make_connected_layer(int inputs, int outputs, ACTIVATION activation, OPTIMIZER optimizer)
+/* TODO: verificar se optimizer deve ficar em LAYER ou NET*/
+layer make_connected_layer(int inputs, int outputs, ACTIVATION activation)
 {
     layer l = {0};
     l.w  = random_matrix(inputs, outputs, sqrtf(2.f/inputs));
@@ -178,21 +177,8 @@ layer make_connected_layer(int inputs, int outputs, ACTIVATION activation, OPTIM
     l.activation = activation;
     l.forward  = forward_connected_layer;
     l.backward = backward_connected_layer;
+    l.update = update_connected_layer_with_momentum;
 
-
-    if (optimizer == SGDM) {
-        l.update = update_connected_layer_with_momentum;
-        l.beta1 = 0.9; // momentum
-    }
-    else if (optimizer == ADAM) {
-        l.update = update_connected_layer_with_adam;
-        l.beta1 = 0.9; // momentum
-    }
-    else {
-        printf("optimizer not implemented or not recognized!");
-        exit(-1);
-    }
-    
     return l;
 }
 
