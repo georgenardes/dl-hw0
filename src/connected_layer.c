@@ -124,19 +124,19 @@ void update_connected_layer(layer l, float rate, float momentum, float decay, fl
 
     matrix vdw_correct = copy_matrix(l.vdw);
     matrix sdw_correct = copy_matrix(l.sdw);
-    scal_matrix((1.0 / (1.0 - pow(b1, iteration))), vdw_correct);
-    scal_matrix((1.0 / (1.0 - pow(b2, iteration))), sdw_correct);
-    sqrt_matrix(sdw_correct);
+    scal_matrix((1.0 / (1.0 - pow(b1, iteration+1))), vdw_correct);
+    scal_matrix((1.0 / (1.0 - pow(b2, iteration+1))), sdw_correct);
+    sqrt_matrix(sdw_correct); //must be non negative because of sqrt
 
 
-    matrix vdb_correct = copy_matrix(l.vdw);
-    matrix sdb_correct = copy_matrix(l.sdw);
-    scal_matrix((1.0 / (1.0 - pow(b1, iteration))), vdb_correct);
-    scal_matrix((1.0 / (1.0 - pow(b2, iteration))), sdb_correct);
-    sqrt_matrix(sdb_correct);
+    matrix vdb_correct = copy_matrix(l.vdb);
+    matrix sdb_correct = copy_matrix(l.sdb);
+    scal_matrix((1.0 / (1.0 - pow(b1, iteration+1))), vdb_correct);
+    scal_matrix((1.0 / (1.0 - pow(b2, iteration+1))), sdb_correct);
+    sqrt_matrix(sdb_correct); // must be non negative because of sqrt
 
     matrix dw = matdiv(vdw_correct, sdw_correct);
-    matrix db = matdiv(vdw_correct, sdw_correct);
+    matrix db = matdiv(vdb_correct, sdb_correct);
 
     // For our weights we want to include weight decay: axpy_matrix(-decay, l.w, l.dw);
   
