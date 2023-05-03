@@ -27,16 +27,27 @@ void activate_matrix(matrix m, ACTIVATION a)
                 }
             }
             else if (a == SOFTMAX) {
+                x = x > 85 ? 85 : x; // feito isso para evitar overflow (inf) na exponenciação
                 m.data[i * m.cols + j] = exp(x);
+
+                if (isnan(m.data[i * m.cols + j]) || isinf(m.data[i * m.cols + j])) {
+                    printf("\n\n detected inf or nan in exp(x)!\n\n");
+                }
+
             }
             sum += m.data[i * m.cols + j];
         }
+
+        if (isnan(sum) || isinf(sum)) {
+            printf("\n\n detected inf or nan in sum!\n\n");
+        }
+
         if (a == SOFTMAX) {
             for (j = 0; j < m.cols; ++j) {
                 m.data[i * m.cols + j] /= sum;
             }
-        }
-    }
+        }        
+    }    
 }
 
 // Calculates the gradient of an activation function and multiplies it into

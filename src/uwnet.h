@@ -46,6 +46,7 @@ typedef struct layer {
     void   (*update)   (struct layer, float rate, float momentum, float decay);    
 } layer;
 
+static int QUANTIZE = 1;
 
 matrix quantize_matrix_to_sx4(matrix m, float num_bits, float min_exp, float max_exp);
 layer make_connected_layer(int inputs, int outputs, ACTIVATION activation);
@@ -60,6 +61,9 @@ void backward_net(net m);
 void update_net(net m, float rate, float momentum, float decay);
 void free_layer(layer l);
 void free_net(net n);
+
+float cross_entropy_loss(matrix y, layer l);
+
 
 typedef struct{
     matrix X;

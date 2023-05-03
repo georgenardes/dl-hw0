@@ -1,6 +1,6 @@
 #include <math.h>
 #include <stdlib.h>
-#include <assert.h>
+// #include <assert.h>
 #include "uwnet.h"
 #include "matrix.h"
 
@@ -30,25 +30,8 @@ float accuracy_net(net m, data d)
     return (float)correct / d.y.rows;
 }
 
-/*
-https://deepnotes.io/softmax-crossentropy
-https://www.deeplearningbook.com.br/cross-entropy-cost-function/
 
-*/
-float cross_entropy_loss(matrix y, layer l)
-{
-    matrix preds = l.out[0];
-    matrix delta = l.delta[0];
-    assert(y.rows == preds.rows);
-    assert(y.cols == preds.cols);
-    int i;
-    float sum = 0;
-    for(i = 0; i < y.cols*y.rows; ++i){
-        sum += -y.data[i]*log(preds.data[i]);
-        delta.data[i] += preds.data[i] - y.data[i];
-    }
-    return sum/y.rows;
-}
+
 
 /*
 void train_image_classifier(net m, data d, int batch, int iters, float rate, float momentum, float decay)
@@ -82,10 +65,11 @@ void train_val_image_classifier(net m, data train, data val, int batch, int epoc
         printf("epoch %d/%d ", e, epochs);
 
         for (it = 0; it < it_per_epoch; it++) {
+
             data b = random_batch(train, batch);
             forward_net(m, b.X);
             float err = cross_entropy_loss(b.y, m.layers[m.n - 1]);
-            
+
             fprintf(stderr, "\repoch %03d/%03d: it %05d/%05d ... loss: %06f ", e, epochs, it, it_per_epoch, err);
 
             backward_net(m);

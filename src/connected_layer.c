@@ -31,18 +31,44 @@ void backward_bias(matrix delta, matrix db)
     }
 }
 
+
+
+
+
 // Run a connected layer on input
 // layer l: pointer to layer to run
 // matrix in: input to layer
 // returns: the result of running the layer: f(wx + b)
 matrix forward_connected_layer(layer l, matrix in)
 {
-    // run the network forward
-    matrix out = matmul(in, l.w);  // xw
-    forward_bias(out, l.b);  // + b
+    matrix w = l.w; // !! check if it is passing the correct value !! \\ // 
+    matrix b = l.b; // !! check if it is passing the correct value !! \\ // 
+    matrix qin;
+
+    check_nan_matrix(in);
+    check_nan_matrix(w);
+    check_nan_matrix(b);
+
+    if (QUANTIZE) {
+        w = quantize_matrix_to_sx4(w, 4, 0, 7);
+        b = quantize_matrix_to_sx4(b, 4, 0, 7);        
+    }
     
+    check_nan_matrix(w);
+    check_nan_matrix(b);
+
+
+
+    // run the network forward
+    matrix out = matmul(in, w);  // xw
+    check_nan_matrix(out);
+    forward_bias(out, b);  // + b
+    check_nan_matrix(out);
+
+
     // apply activation
     activate_matrix(out, l.activation);
+    check_nan_matrix(out);
 
     // Saving our input and output and making a new delta matrix to hold errors
     // Probably don't change this
@@ -50,7 +76,16 @@ matrix forward_connected_layer(layer l, matrix in)
     free_matrix(l.out[0]);
     l.out[0] = out;
     free_matrix(l.delta[0]);
-    l.delta[0] = make_matrix(out.rows, out.cols);
+    l.delta[0] = make_matrix(out.rows, out.cols);    
+
+
+    if (QUANTIZE) {
+        free_matrix(w);
+        free_matrix(b); 
+    }
+
+    
+
     return out;
 }
 
@@ -63,6 +98,9 @@ void backward_connected_layer(layer l, matrix prev_delta)
     matrix out   = l.out[0]; // output is = activation(Z)
     matrix delta = l.delta[0];    
 
+    //check_nan_matrix(in);
+    //check_nan_matrix(out);
+    //check_nan_matrix(delta);
 
 
     // delta is the error made by this layer, dL/dout
@@ -148,7 +186,7 @@ void update_connected_layer_with_adam(layer l, float rate, float decay, float it
 void update_connected_layer_with_momentum(layer l, float rate, float momentum, float decay)
 {
     // For our weights we want to include weight decay:    
-    // axpy_matrix(-decay, l.w, l.dw);
+    axpy_matrix(-decay, l.w, l.dw);
 
     // Then for both weights and biases we want to apply the updates:
     axpy_matrix(rate, l.dw, l.w);
@@ -196,14 +234,33 @@ matrix quantize_matrix_to_sx4(matrix m, float num_bits, float min_exp, float max
     for (int i = 0; i < m.rows; i++) {
         for (int j = 0; j < m.cols; j++) {
             float x, qx;
+            int underflow = 0;
             x = qx = m.data[i * m.cols + j];
+            if (qx > 1.0) {
+                m.data[i * m.cols + j] = 1.0;
+            }
+            else if (qx < -1.0) {
+                m.data[i * m.cols + j] = -1.0;
+            }
+
+            // printf("x = %f \n", x);
 
             // quantization
-            qx = (int)(abs(log2(abs(qx) + 1e-7)) + 0.5);
-            qx = min(max_exp, max(min_exp, qx));
-            qx = powf(2.0, -qx);
-            qx = x < 0.0 ? -qx : qx;
+            qx = fabsf(qx);             // |x|
+            underflow = qx < 1e-7 ? 1e-7 : qx; // clip min (to avoid numerical problems)
+            qx = qx > 1.0  ? 1.0  : qx; // clip max
             
+            qx = log2(qx);  // log2 
+            qx = fabsf(qx); // |x|
+            
+            float rng = (float)rand() / (float)RAND_MAX; // numero randomico entre 0 e 1.0            
+            qx = (qx - (int)(qx)) > rng ? qx+1 : qx;     // compara a mantissa para arredondar            
+            qx = (int)qx;                                // quantiza            
+            qx = min(max_exp, max(min_exp, qx));         // clipa entre o min e max expoente            
+            qx = powf(2.0, -qx);                         // traz para representação float            
+            qx = x < 0.0 ? -qx : qx;                     // coloca o sinal como estava 
+            
+
             // set the quantized value on the new matrix
             qm.data[i * m.cols + j] = qx;
         }

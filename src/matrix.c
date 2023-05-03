@@ -165,6 +165,16 @@ void scal_matrix(float s, matrix m)
 }
 
 
+float reduced_max(matrix m) {
+    float max = -1e+30;
+    for (int i = 0; i < m.rows * m.cols; i++) {
+        if (m.data[i] > max)
+            max = m.data[i];
+    }
+    return max;
+}
+
+
 // In-place square root of each matrix element with epsilon
 void sqrt_matrix(matrix m) 
 {
@@ -173,6 +183,20 @@ void sqrt_matrix(matrix m)
         for (j = 0; j < m.cols; ++j) {
             m.data[i * m.cols + j] = sqrtf(m.data[i * m.cols + j] + 1e-8);
         }
+    }
+}
+
+void check_nan_matrix(matrix m) {
+    int q = 0;
+    for (int i = 0; i < m.rows * m.cols; ++i) {
+        if (((int)(m.data[i])) == (-2147483648)) {
+            printf("\nidentificado matrix com nan!\n");
+            q = 1;
+        }        
+    }
+
+    if (q == 1) { 
+        print_matrix(m); 
     }
 }
 

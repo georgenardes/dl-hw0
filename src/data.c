@@ -67,7 +67,7 @@ data load_image_classification_data(char *images, char *label_file)
             cols = im.w*im.h*im.c;
             X = make_matrix(n, cols);
         }
-        for (i = 0; i < cols; ++i){
+        for (i = 0; i < cols; ++i){            
             X.data[count*X.cols + i] = im.data[i];
         }
 

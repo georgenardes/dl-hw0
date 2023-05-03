@@ -70,7 +70,12 @@ void scal_matrix(float s, matrix m);
 void sqrt_matrix(matrix m);
 
 
+// verifica se há nan na matriz
+void check_nan_matrix(matrix m);
 
+
+// retornar o máximo valor da matriz
+float reduced_max(matrix m);
 
 
 // Print a matrix

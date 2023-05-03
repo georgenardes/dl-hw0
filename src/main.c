@@ -70,7 +70,7 @@ void try_mnist()
     int epochs = 15;
     float rate = 0.001;
     float momentum = 0.9;
-    float decay = 0.0;
+    float decay = 0.00005;
 
     train_val_image_classifier(n, train, val, batch, epochs, rate, momentum, decay);
     printf("Training accuracy: %f\n", accuracy_net(n, train));
@@ -80,6 +80,14 @@ void try_mnist()
 
 int main()
 {
+    float a = log(-1);
+
+    int b = a;
+
+    printf("%f\n", a);
+    printf("%d", b);
+
+
     //if(argc < 2){
     //    printf("usage: %s [test | trymnist]\n", argv[0]);  
     //} else if (0 == strcmp(argv[1], "trymnist")){
@@ -90,5 +98,5 @@ int main()
 
     printf("finalizado o experimento ... \n");
 
-
+    return 0;
 }
