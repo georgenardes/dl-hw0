@@ -39,25 +39,22 @@ void backward_bias(matrix delta, matrix db)
 // layer l: pointer to layer to run
 // matrix in: input to layer
 // returns: the result of running the layer: f(wx + b)
-matrix forward_connected_layer(layer l, matrix in)
+matrix forward_connected_layer(layer l, matrix in_original)
 {
     matrix w = l.w; // !! check if it is passing the correct value !! \\ // 
     matrix b = l.b; // !! check if it is passing the correct value !! \\ // 
-    matrix qin;
-
-    check_nan_matrix(in);
-    check_nan_matrix(w);
-    check_nan_matrix(b);
+    matrix in = in_original;
 
     if (QUANTIZE) {
         w = quantize_matrix_to_sx4(w, 4, 0, 7);
         b = quantize_matrix_to_sx4(b, 4, 0, 7);        
+        //in = quantize_matrix_to_sx4(in, 4, 0, 7);
     }
     
+    // sanity check
+    check_nan_matrix(in);
     check_nan_matrix(w);
     check_nan_matrix(b);
-
-
 
     // run the network forward
     matrix out = matmul(in, w);  // xw
@@ -72,16 +69,17 @@ matrix forward_connected_layer(layer l, matrix in)
 
     // Saving our input and output and making a new delta matrix to hold errors
     // Probably don't change this
-    l.in[0] = in;
+    l.in[0] = in_original;
     free_matrix(l.out[0]);
     l.out[0] = out;
     free_matrix(l.delta[0]);
     l.delta[0] = make_matrix(out.rows, out.cols);    
 
 
-    if (QUANTIZE) {
+    if (QUANTIZE) { // if quantization was enabled, we must free memory of allocated matrixes
         free_matrix(w);
         free_matrix(b); 
+        //free_matrix(in);
     }
 
     
@@ -234,42 +232,42 @@ matrix quantize_matrix_to_sx4(matrix m, float num_bits, float min_exp, float max
     float org_x, qx;
     float min_linear_value = powf(2.0, -max_exp);
     
-    for (int i = 0; i < m.rows; i++) {
-        for (int j = 0; j < m.cols; j++) {            
-            org_x = qx = m.data[i * m.cols + j];
+    for (int i = 0; i < m.rows * m.cols; i++) {
+              
+        org_x = qx = m.data[i];
 
-            // clip original X between -1 e 1
-            if (org_x > 1.0) {
-                m.data[i * m.cols + j] = 1.0;     
-            }
-            else if (org_x < -1.0) {
-                m.data[i * m.cols + j] = -1.0;
-            }
-
-            // start quantization
-
-            float rng = (float)rand() / (float)RAND_MAX; // numero randomico entre 0 e 1.0
-            
-            qx = fabsf(qx);         // |x|            
-            if (qx < min_linear_value) {    // underflow                
-                qx = max_exp;               // clip min (to avoid numerical problems)
-                qx = powf(2.0, -qx);        // traz para representação float         
-                qx = rng > 0.5 ? qx : -qx;  // coloca um sinal rand
-            }
-            else {
-                qx = log2(qx);              // log2 
-                qx = fabsf(qx);             // |qx|
-
-                qx = (qx - (int)(qx)) > rng ? qx + 1 : qx;   // compara a mantissa para arredondar            
-                qx = (int)qx;                                      // quantiza            
-                qx = min(max_exp, max(min_exp, qx));               // clipa entre o min e max expoente                           
-                qx = powf(2.0, -qx);                               // traz para representação float            
-                qx = org_x < 0.0 ? -qx : qx;                       // coloca o sinal como estava 
-            }
-
-            // set the quantized value on the new matrix
-            qm.data[i * m.cols + j] = qx;
+        // clip original X between -1 e 1
+        if (org_x > 1.0) {
+            m.data[i] = 1.0;     
         }
+        else if (org_x < -1.0) {
+            m.data[i] = -1.0;
+        }
+
+        // start quantization
+
+        float rng = (float)rand() / (float)RAND_MAX; // numero randomico entre 0 e 1.0
+            
+        qx = fabsf(qx);                 // |x|            
+        if (qx < min_linear_value) {    // underflow                
+            qx = max_exp;               // clip min (to avoid numerical problems)
+            qx = powf(2.0, -qx);        // traz para representação float         
+            qx = rng > 0.5 ? qx : -qx;  // coloca um sinal rand
+        }
+        else {
+            qx = log2(qx);              // log2 
+            qx = fabsf(qx);             // |qx|
+
+            qx = (qx - (int)(qx)) > rng ? qx + 1 : qx;   // compara a mantissa para arredondar            
+            qx = (int)qx;                                      // quantiza            
+            qx = min(max_exp, max(min_exp, qx));               // clipa entre o min e max expoente                           
+            qx = powf(2.0, -qx);                               // traz para representação float            
+            qx = org_x < 0.0 ? -qx : qx;                       // coloca o sinal como estava 
+        }
+
+        // set the quantized value on the new matrix
+        qm.data[i] = qx;
+        
     }
 
     return qm;
