@@ -227,39 +227,45 @@ layer make_connected_layer(int inputs, int outputs, ACTIVATION activation)
 
 
 matrix quantize_matrix_to_sx4(matrix m, float num_bits, float min_exp, float max_exp) 
-{
-    
+{        
+
     matrix qm = make_matrix(m.rows, m.cols);
 
+    float org_x, qx;
+    float min_linear_value = powf(2.0, -max_exp);
+    
     for (int i = 0; i < m.rows; i++) {
-        for (int j = 0; j < m.cols; j++) {
-            float x, qx;
-            int underflow = 0;
-            x = qx = m.data[i * m.cols + j];
-            if (qx > 1.0) {
-                m.data[i * m.cols + j] = 1.0;
+        for (int j = 0; j < m.cols; j++) {            
+            org_x = qx = m.data[i * m.cols + j];
+
+            // clip original X between -1 e 1
+            if (org_x > 1.0) {
+                m.data[i * m.cols + j] = 1.0;     
             }
-            else if (qx < -1.0) {
+            else if (org_x < -1.0) {
                 m.data[i * m.cols + j] = -1.0;
             }
 
-            // printf("x = %f \n", x);
+            // start quantization
 
-            // quantization
-            qx = fabsf(qx);             // |x|
-            underflow = qx < 1e-7 ? 1e-7 : qx; // clip min (to avoid numerical problems)
-            qx = qx > 1.0  ? 1.0  : qx; // clip max
+            float rng = (float)rand() / (float)RAND_MAX; // numero randomico entre 0 e 1.0
             
-            qx = log2(qx);  // log2 
-            qx = fabsf(qx); // |x|
-            
-            float rng = (float)rand() / (float)RAND_MAX; // numero randomico entre 0 e 1.0            
-            qx = (qx - (int)(qx)) > rng ? qx+1 : qx;     // compara a mantissa para arredondar            
-            qx = (int)qx;                                // quantiza            
-            qx = min(max_exp, max(min_exp, qx));         // clipa entre o min e max expoente            
-            qx = powf(2.0, -qx);                         // traz para representação float            
-            qx = x < 0.0 ? -qx : qx;                     // coloca o sinal como estava 
-            
+            qx = fabsf(qx);         // |x|            
+            if (qx < min_linear_value) {    // underflow                
+                qx = max_exp;               // clip min (to avoid numerical problems)
+                qx = powf(2.0, -qx);        // traz para representação float         
+                qx = rng > 0.5 ? qx : -qx;  // coloca um sinal rand
+            }
+            else {
+                qx = log2(qx);              // log2 
+                qx = fabsf(qx);             // |qx|
+
+                qx = (qx - (int)(qx)) > rng ? qx + 1 : qx;   // compara a mantissa para arredondar            
+                qx = (int)qx;                                      // quantiza            
+                qx = min(max_exp, max(min_exp, qx));               // clipa entre o min e max expoente                           
+                qx = powf(2.0, -qx);                               // traz para representação float            
+                qx = org_x < 0.0 ? -qx : qx;                       // coloca o sinal como estava 
+            }
 
             // set the quantized value on the new matrix
             qm.data[i * m.cols + j] = qx;

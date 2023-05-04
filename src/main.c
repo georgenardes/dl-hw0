@@ -80,12 +80,6 @@ void try_mnist()
 
 int main()
 {
-    float a = log(-1);
-
-    int b = a;
-
-    printf("%f\n", a);
-    printf("%d", b);
 
 
     //if(argc < 2){
